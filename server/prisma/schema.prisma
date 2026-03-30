@@ -1,0 +1,43 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String         @id @default(cuid())
+  username       String         @unique
+  email          String         @unique
+  passwordHash   String
+  avatarUrl      String?
+  isOnline       Boolean        @default(false)
+  createdAt      DateTime       @default(now())
+  conversations1 Conversation[] @relation("participant1")
+  conversations2 Conversation[] @relation("participant2")
+  sentMessages   Message[]      @relation("sender")
+}
+
+model Conversation {
+  id             String    @id @default(cuid())
+  participant1   User      @relation("participant1", fields: [participant1Id], references: [id])
+  participant1Id String
+  participant2   User      @relation("participant2", fields: [participant2Id], references: [id])
+  participant2Id String
+  messages       Message[]
+  createdAt      DateTime  @default(now())
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  content        String?
+  fileUrl        String?
+  seenAt         DateTime?
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  conversationId String
+  sender         User         @relation("sender", fields: [senderId], references: [id])
+  senderId       String
+  createdAt      DateTime     @default(now())
+}
