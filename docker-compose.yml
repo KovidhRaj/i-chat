@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  server:
+    build: ./server
+    container_name: chat-server
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=file:/app/prisma/prod.db
+      - JWT_SECRET=${JWT_SECRET}
+      - PORT=3000
+      - CLIENT_URL=${CLIENT_URL}
+    volumes:
+      - ./server/uploads:/app/uploads
+      - ./server/prisma:/app/prisma
+
+  client:
+    build: ./client
+    container_name: chat-client
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - server

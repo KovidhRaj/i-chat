@@ -13,6 +13,7 @@ const ChatWindow = () => {
     const [input, setInput] = useState('')
     const [typing, setTyping] = useState(false)
     const [isTyping, setIsTyping] = useState(false)
+    const [lightboxUrl, setLightboxUrl] = useState(null)
     const typingTimeout = useRef(null)
     const bottomRef = useRef(null)
 
