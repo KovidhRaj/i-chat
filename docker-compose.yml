@@ -1,20 +1,58 @@
 version: '3.8'
 
 services:
-  server:
-    build: ./server
-    container_name: chat-server
+  redis:
+    image: redis:7-alpine
+    container_name: chat-redis
     restart: always
-    ports:
-      - "3000:3000"
+
+  server1:
+    build: ./server
+    container_name: chat-server-1
+    restart: always
     environment:
       - DATABASE_URL=file:/app/prisma/prod.db
       - JWT_SECRET=${JWT_SECRET}
       - PORT=3000
       - CLIENT_URL=${CLIENT_URL}
+      - REDIS_URL=redis://redis:6379
     volumes:
       - ./server/uploads:/app/uploads
       - ./server/prisma:/app/prisma
+    depends_on:
+      - redis
+
+  server2:
+    build: ./server
+    container_name: chat-server-2
+    restart: always
+    environment:
+      - DATABASE_URL=file:/app/prisma/prod.db
+      - JWT_SECRET=${JWT_SECRET}
+      - PORT=3000
+      - CLIENT_URL=${CLIENT_URL}
+      - REDIS_URL=redis://redis:6379
+    volumes:
+      - ./server/uploads:/app/uploads
+      - ./server/prisma:/app/prisma
+    depends_on:
+      - redis
+
+  server3:
+    build: ./server
+    container_name: chat-server-3
+    restart: always
+    environment:
+      - DATABASE_URL=file:/app/prisma/prod.db
+      - JWT_SECRET=${JWT_SECRET}
+      - PORT=3000
+      - CLIENT_URL=${CLIENT_URL}
+      - REDIS_URL=redis://redis:6379
+    volumes:
+      - ./server/uploads:/app/uploads
+      - ./server/prisma:/app/prisma
+    depends_on:
+      - redis
 
   client:
     build: ./client
@@ -23,4 +61,6 @@ services:
     ports:
       - "80:80"
     depends_on:
-      - server
+      - server1
+      - server2
+      - server3

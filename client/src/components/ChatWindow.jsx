@@ -5,7 +5,7 @@ import { useSocket } from '../context/SocketContext'
 import api from '../lib/axios'
 
 const ChatWindow = () => {
-    const { activeConversation, messages, setMessages, addMessage } = useChatStore()
+    const { activeConversation, messages, setMessages, addMessage, setActiveConversation } = useChatStore()
     const { user } = useAuthStore()
     const socket = useSocket()
     const fileInputRef = useRef(null)
@@ -169,6 +169,13 @@ const ChatWindow = () => {
     return (
         <div className="chat-window">
             <div className="chat-header">
+                <button
+                    className="back-btn"
+                    onClick={() => setActiveConversation(null)}
+                    aria-label="Back to conversations"
+                >
+                    ←
+                </button>
                 <div className="avatar">{otherUser?.username[0].toUpperCase()}</div>
                 <div>
                     <p className="chat-header-name">{otherUser?.username}</p>
@@ -179,28 +186,35 @@ const ChatWindow = () => {
             </div>
 
             <div className="messages-list">
-                {messages.map((msg) => (
-                    <div
-                        key={msg.id}
-                        className={`message ${msg.senderId === user.id ? 'mine' : 'theirs'}`}
-                    >
-                        <div className="message-bubble">{msg.content && <p>{msg.content}</p>}
-                            {msg.fileUrl && (
-                                isImage(msg.fileUrl)
-                                    ? <img src={msg.fileUrl} alt='sent file' className='message-image' />
-                                    : <a href={msg.fileUrl} target='_blank' rel='noreferrer' className='file-link'>📄 Download file</a>
-                            )}</div>
-                        <div className="message-time">
-                            {new Date(msg.createdAt).toLocaleTimeString([], {
-                                hour: '2-digit',
-                                minute: '2-digit'
-                            })}
-                            {msg.senderId === user.id && msg.seenAt && (
-                                <span className="seen-tick"> ✓✓</span>
-                            )}
+                {messages.map((msg, index) => {
+                    const prevMsg = messages[index - 1]
+                    const isGrouped = !!prevMsg &&
+                        prevMsg.senderId === msg.senderId &&
+                        (new Date(msg.createdAt) - new Date(prevMsg.createdAt)) < 5 * 60 * 1000
+
+                    return (
+                        <div
+                            key={msg.id}
+                            className={`message ${msg.senderId === user.id ? 'mine' : 'theirs'} ${isGrouped ? 'grouped' : ''}`}
+                        >
+                            <div className="message-bubble">{msg.content && <p>{msg.content}</p>}
+                                {msg.fileUrl && (
+                                    isImage(msg.fileUrl)
+                                        ? <img src={msg.fileUrl} alt='sent file' className='message-image' />
+                                        : <a href={msg.fileUrl} target='_blank' rel='noreferrer' className='file-link'>📄 Download file</a>
+                                )}</div>
+                            <div className="message-time">
+                                {new Date(msg.createdAt).toLocaleTimeString([], {
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                })}
+                                {msg.senderId === user.id && msg.seenAt && (
+                                    <span className="seen-tick"> ✓✓</span>
+                                )}
+                            </div>
                         </div>
-                    </div>
-                ))}
+                    )
+                })}
 
                 {isTyping && (
                     <div className="message theirs">
