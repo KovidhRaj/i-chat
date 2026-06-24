@@ -1,158 +1,63 @@
-const prisma = require('../models/prisma')
-const jwt = require('jsonwebtoken')
+const express = require('express')
+const http = require('http')
+const { Server } = require('socket.io')
+const { createAdapter } = require('@socket.io/redis-adapter')
+const { createClient } = require('redis')
+const cors = require('cors')
+const path = require('path')
+require('dotenv').config()
 
-module.exports = (io) => {
-    // authenticate socket connection using JWT
-    io.use((socket, next) => {
-        const token = socket.handshake.auth.token
+const app = express()
+const httpServer = http.createServer(app)
 
-        if (!token) {
-            return next(new Error('No token provided'))
-        }
+const io = new Server(httpServer, {
+    cors: {
+        origin: process.env.CLIENT_URL,
+        methods: ['GET', 'POST']
+    }
+})
 
-        try {
-            const decoded = jwt.verify(token, process.env.JWT_SECRET)
-            socket.user = decoded
-            next()
-        } catch (err) {
-            next(new Error('Invalid token'))
-        }
+//Middleware
+
+app.use(cors({ origin: process.env.CLIENT_URL }))
+app.use(express.json())
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
+
+// Routes
+const authRoutes = require('./routes/auth')
+const conversationRoutes = require('./routes/conversation')
+const userRoutes = require('./routes/users')
+const uploadRoutes = require('./routes/upload')
+
+app.use('/api/auth', authRoutes)
+app.use('/api/conversations', conversationRoutes)
+app.use('/api/users', userRoutes)
+app.use('/api/upload', uploadRoutes)
+
+app.get('/', (req, res) => {
+    res.json({ message: 'Chat App is running' })
+})
+
+// Socket
+const socketHandler = require('./socket')
+socketHandler(io)
+
+const PORT = process.env.PORT || 3000
+
+// Connect the Redis adapter before accepting any connections, so that
+// every instance shares presence/typing/message events from the start
+// instead of only seeing sockets connected to itself.
+const pubClient = createClient({ url: process.env.REDIS_URL })
+const subClient = pubClient.duplicate()
+
+Promise.all([pubClient.connect(), subClient.connect()])
+    .then(() => {
+        io.adapter(createAdapter(pubClient, subClient))
+        httpServer.listen(PORT, () => {
+            console.log(`Server running on port: ${PORT} (Redis adapter connected)`)
+        })
     })
-    io.on('connection', (socket) => {
-        console.log(`${socket.user.username} connected`)
-
-        // join a personal room using user id
-        // this lets us send messages directly to specific user
-        socket.join(socket.user.id)
-
-        //update user online status
-        prisma.user.update({
-            where: { id: socket.user.id },
-            data: { isOnline: true }
-        }).then(() => {
-            // broadcast to everyon that this user is online
-            io.emit('presence:update', {
-                userId: socket.user.id,
-                isOnline: true
-            })
-        })
-        // handle sending a message
-        socket.on('message:send', async (data, callback) => {
-            const { conversationId, content } = data
-
-            try {
-                //verify this user is part of the conversation
-                const conversation = await prisma.conversation.findFirst({
-                    where: {
-                        id: conversationId,
-                        OR: [
-                            { participant1Id: socket.user.id },
-                            { participant2Id: socket.user.id }
-                        ]
-                    }
-                })
-
-                if (!conversation) {
-                    return callback({ error: 'Conversation not found' })
-                }
-                // save message to database
-                const message = await prisma.message.create({
-                    data: {
-                        content,
-                        conversationId,
-                        senderId: socket.user.id
-                    },
-                    include: {
-                        sender: {
-                            select: { id: true, username: true, avatarUrl: true }
-                        }
-                    }
-                })
-                // find the other participant
-                const recipientId = conversation.participant1Id === socket.user.id
-                    ? conversation.participant2Id
-                    : conversation.participant1Id
-
-                // send message to recipient's personal room
-                io.to(recipientId).emit('message:receive', message)
-
-                // send back to sender as confirmation
-                callback({ message })
-            } catch (err) {
-                console.error(err)
-                callback({ error: 'Failed to send message' })
-            }
-        })
-        // handle file message notification
-        socket.on('file:sent', async (data) => {
-            const { message, conversationId } = data
-
-            try {
-                const conversation = await prisma.conversation.findFirst({
-                    where: { id: conversationId }
-                })
-                if (!conversation) return
-
-                const recipientId = conversation.participant1Id === socket.user.id
-                    ? conversation.participant2Id
-                    : conversation.participant1Id
-
-                // notify recipient about the file message
-                io.to(recipientId).emit('message:receive', message)
-            } catch (err) {
-                console.error(err)
-            }
-
-        })
-        // handle typing indicator
-        socket.on('typing:start', (data) => {
-            const { conversationId, recipientId } = data
-            io.to(recipientId).emit('typing:start', {
-                userId: socket.user.id,
-                username: socket.user.username,
-                conversationId
-            })
-        })
-
-        socket.on('typing:stop', (data) => {
-            const { recipientId } = data
-            io.to(recipientId).emit('typing:stop', {
-                userId: socket.user.id
-            })
-        })
-
-        // handle message seen
-
-        socket.on('message:seen', async (data) => {
-            const { messageId, senderId } = data
-
-            try {
-                await prisma.message.update({
-                    where: { id: messageId },
-                    data: { seenAt: new Date() }
-                })
-
-                // notify the sender their message was seen
-                io.to(senderId).emit('message:seen', { messageId })
-            } catch (err) {
-                console.error(err)
-            }
-        })
-
-        //handle disconnect
-        socket.on('disconnect', () => {
-            console.log(`${socket.user.username} disconnected`)
-
-            prisma.user.update({
-                where: { id: socket.user.id },
-                data: { isOnline: false }
-            }).then(() => {
-                io.emit('presence:update', {
-                    userId: socket.user.id,
-                    isOnline: false
-                })
-            })
-        })
-
+    .catch((err) => {
+        console.error('Failed to connect Redis adapter:', err)
+        process.exit(1)
     })
-}
