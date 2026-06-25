@@ -26,8 +26,8 @@ router.post('/', async (req, res) => {
                 ]
             },
             include: {
-                participant1: { select: { id: true, username: true, avatarUrl: true, isOnline: true } },
-                participant2: { select: { id: true, username: true, avatarUrl: true, isOnline: true } },
+                participant1: { select: { id: true, username: true, avatarUrl: true, displayName: true, isOnline: true, lastSeenAt: true } },
+                participant2: { select: { id: true, username: true, avatarUrl: true, displayName: true, isOnline: true, lastSeenAt: true } },
                 messages: {
                     orderBy: { createdAt: 'desc' },
                     take: 1
@@ -43,8 +43,8 @@ router.post('/', async (req, res) => {
                     participant2Id: userId
                 },
                 include: {
-                    participant1: { select: { id: true, username: true, avatarUrl: true, isOnline: true } },
-                    participant2: { select: { id: true, username: true, avatarUrl: true, isOnline: true } },
+                    participant1: { select: { id: true, username: true, avatarUrl: true, displayName: true, isOnline: true, lastSeenAt: true } },
+                    participant2: { select: { id: true, username: true, avatarUrl: true, displayName: true, isOnline: true, lastSeenAt: true } },
                     messages: {
                         orderBy: { createdAt: 'desc' },
                         take: 1
@@ -71,8 +71,8 @@ router.get('/', async (req, res) => {
                 ]
             },
             include: {
-                participant1: { select: { id: true, username: true, avatarUrl: true, isOnline: true } },
-                participant2: { select: { id: true, username: true, avatarUrl: true, isOnline: true } },
+                participant1: { select: { id: true, username: true, avatarUrl: true, displayName: true, isOnline: true, lastSeenAt: true } },
+                participant2: { select: { id: true, username: true, avatarUrl: true, displayName: true, isOnline: true, lastSeenAt: true } },
                 messages: {
                     orderBy: { createdAt: 'desc' },
                     take: 1

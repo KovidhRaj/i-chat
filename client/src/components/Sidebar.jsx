@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import useAuthStore from '../store/authStore'
 import useChatStore from '../store/ChatStore'
 import api from '../lib/axios'
+import Avatar from './Avatar'
+import ProfileModal from './ProfileModal'
 
 const Sidebar = () => {
     const { user, logout } = useAuthStore()
@@ -9,6 +11,7 @@ const Sidebar = () => {
     const [search, setSearch] = useState('')
     const [searchResults, setSearchResults] = useState([])
     const [searching, setSearching] = useState(false)
+    const [showProfile, setShowProfile] = useState(false)
 
     useEffect(() => {
         const fetchConversations = async () => {
@@ -70,9 +73,12 @@ const Sidebar = () => {
     return (
         <div className="sidebar">
             <div className="sidebar-header">
-                <div className="sidebar-user">
-                    <div className="avatar">{user?.username?.[0].toUpperCase()}</div>
-                    <span className="sidebar-username">{user?.username}</span>
+                <div className="sidebar-user" onClick={() => setShowProfile(true)} style={{ cursor: 'pointer' }}>
+                    <Avatar user={user} />
+                    <div>
+                        <span className="sidebar-username">{user?.displayName || user?.username}</span>
+                        {user?.displayName && <span className="sidebar-handle">@{user?.username}</span>}
+                    </div>
                 </div>
                 <button className="logout-btn" onClick={logout}>Sign out</button>
             </div>
@@ -98,10 +104,10 @@ const Sidebar = () => {
                             className="search-result-item"
                             onClick={() => startConversation(u.id)}
                         >
-                            <div className="avatar small">{u?.username?.[0].toUpperCase()}</div>
+                            <Avatar user={u} size="small" />
                             <div>
-                                <p className="result-name">{u.username}</p>
-                                <p className="result-sub">Click to start chatting</p>
+                                <p className="result-name">{u.displayName || u.username}</p>
+                                <p className="result-sub">@{u.username}</p>
                             </div>
                         </div>
                     ))}
@@ -123,11 +129,11 @@ const Sidebar = () => {
                                 onClick={() => setActiveConversation(conv)}
                             >
                                 <div className="avatar-wrapper">
-                                    <div className="avatar">{other?.username?.[0].toUpperCase()}</div>
+                                    <Avatar user={other} />
                                     {other?.isOnline && <span className="online-dot" />}
                                 </div>
                                 <div className="conv-info">
-                                    <p className="conv-name">{other?.username}</p>
+                                    <p className="conv-name">{other?.displayName || other?.username}</p>
                                     <p className="conv-last">{getLastMessage(conv)}</p>
                                 </div>
                             </div>
@@ -135,6 +141,8 @@ const Sidebar = () => {
                     })}
                 </div>
             )}
+
+            {showProfile && <ProfileModal onClose={() => setShowProfile(false)} />}
         </div>
     )
 }

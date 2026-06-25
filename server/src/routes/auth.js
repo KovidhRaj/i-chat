@@ -44,7 +44,10 @@ router.post('/register', async (req, res) => {
             user: {
                 id: user.id,
                 username: user.username,
-                email: user.email
+                email: user.email,
+                avatarUrl: user.avatarUrl,
+                displayName: user.displayName,
+                bio: user.bio
             }
         })
     } catch (err) {
@@ -86,8 +89,11 @@ router.post('/login', async (req, res) => {
             token,
             user: {
                 id: user.id,
-                usename: user.username,
-                email: user.email
+                username: user.username,
+                email: user.email,
+                avatarUrl: user.avatarUrl,
+                displayName: user.displayName,
+                bio: user.bio
             }
         })
     } catch (err) {
@@ -101,7 +107,7 @@ router.get('/me', authMiddleware, async (req, res) => {
     try {
         const user = await prisma.user.findUnique({
             where: { id: req.user.id },
-            select: { id: true, username: true, email: true, avatarUrl: true }
+            select: { id: true, username: true, email: true, avatarUrl: true, displayName: true, bio: true }
         })
         res.json(user)
     } catch (err) {

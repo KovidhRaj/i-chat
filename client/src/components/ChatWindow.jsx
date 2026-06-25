@@ -3,6 +3,7 @@ import useChatStore from '../store/ChatStore'
 import useAuthStore from '../store/authStore'
 import { useSocket } from '../context/SocketContext'
 import api from '../lib/axios'
+import Avatar from './Avatar'
 
 const QUICK_EMOJIS = ['❤️', '😂', '😮', '😢', '👍', '🔥']
 
@@ -274,9 +275,9 @@ const ChatWindow = () => {
                 >
                     ←
                 </button>
-                <div className="avatar">{otherUser?.username[0].toUpperCase()}</div>
+                <Avatar user={otherUser} />
                 <div>
-                    <p className="chat-header-name">{otherUser?.username}</p>
+                    <p className="chat-header-name">{otherUser?.displayName || otherUser?.username}</p>
                     <p className="chat-header-status">
                         {otherUser?.isOnline ? 'Online' : formatLastSeen(otherUser?.lastSeenAt)}
                     </p>
