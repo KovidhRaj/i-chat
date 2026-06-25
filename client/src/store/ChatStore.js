@@ -4,6 +4,7 @@ const useChatStore = create((set) => ({
     conversations: [],
     activeConversation: null,
     messages: [],
+    replyingTo: null,
 
     setConversations: (conversations) => set({ conversations }),
 
@@ -13,7 +14,8 @@ const useChatStore = create((set) => ({
 
     setActiveConversation: (conversation) => set({
         activeConversation: conversation,
-        messages: []
+        messages: [],
+        replyingTo: null
     }),
 
     setMessages: (messages) => set({ messages }),
@@ -25,7 +27,41 @@ const useChatStore = create((set) => ({
                 ? { ...c, messages: [message] }
                 : c
         )
-    }))
+    })),
+
+    deleteMessage: (messageId) => set((state) => ({
+        messages: state.messages.map(m =>
+            m.id === messageId
+                ? { ...m, deletedAt: new Date().toISOString(), content: null, fileUrl: null }
+                : m
+        )
+    })),
+
+    addReaction: (messageId, reaction) => set((state) => ({
+        messages: state.messages.map(m =>
+            m.id === messageId
+                ? { ...m, reactions: [...(m.reactions || []).filter(r => !(r.userId === reaction.user.id && r.emoji === reaction.emoji)), reaction] }
+                : m
+        )
+    })),
+
+    removeReaction: (messageId, userId, emoji) => set((state) => ({
+        messages: state.messages.map(m =>
+            m.id === messageId
+                ? { ...m, reactions: (m.reactions || []).filter(r => !(r.user.id === userId && r.emoji === emoji)) }
+                : m
+        )
+    })),
+
+    updateMessageStatus: (messageId, field) => set((state) => ({
+        messages: state.messages.map(m =>
+            m.id === messageId
+                ? { ...m, [field]: new Date().toISOString() }
+                : m
+        )
+    })),
+
+    setReplyingTo: (message) => set({ replyingTo: message })
 }))
 
 export default useChatStore

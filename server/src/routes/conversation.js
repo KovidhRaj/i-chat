@@ -109,7 +109,17 @@ router.get('/:id/messages', async (req, res) => {
         const messages = await prisma.message.findMany({
             where: { conversationId: req.params.id },
             include: {
-                sender: { select: { id: true, username: true, avatarUrl: true } }
+                sender: { select: { id: true, username: true, avatarUrl: true } },
+                reactions: { include: { user: { select: { id: true, username: true } } } },
+                replyTo: {
+                    select: {
+                        id: true,
+                        content: true,
+                        fileUrl: true,
+                        deletedAt: true,
+                        sender: { select: { id: true, username: true } }
+                    }
+                }
             },
             orderBy: { createdAt: 'asc' }
         })
